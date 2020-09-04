@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EQ Log</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+<body bgcolor="#4188b3">
+<style>
+table{
+border-collapse: collapse;  
+color: white;
+border: 1px solid #666;
+width: 40%;
+height: 271px;
+overflow-y: scroll;
+}
+h1{
+background-color:#084887 ;
+color: white; 
+border: 1px solid #666;
+padding: 15px 32px;
+}
+h2{
+color: white;
+position: relative; left:35%;
+}
+
+th, td {
+  text-align: left;
+  border: 1px solid #666;
+  padding: 8px;
+}
+td:hover {
+    background-color: #fab419;
+}
+
+tr:nth-child(even) {background-color: #235789;}
+tr:nth-child(odd) {background-color: #084887;}
+tr:nth-child(1) {background-color: #fab419;}
+</style>
+<body>
+<h1 align="center" onclick="javascript:location.href='http://140.115.153.209/'">Country Server</h1>
+    <br>
+
+<div class="chart-container"  style="position: relative; left:10%; height:30vh; width:83vw">
+	<canvas id="chart"></canvas>
+	<h2>Possibility of Earthquake Event</h2>
+</div>
+<br><br>
+<table id="myTable" style="position: absolute; left:50px; top:1000px">
+<table id="myTable1" style="position: absolute; right:50px; top:1000px">
+  <tr>
+  </tr>
+</table>
+<br>
+
+    <script type="text/javascript">
+	var rowNumber = 0; 
+	var rows1=0;
+	var date1 = ['0','0','0','0','0','0','0','0','0','0'];
+        var rate = [0,0,0,0,0,0,0,0,0,0];
+        var count = 0;
+	login(1),login(12);
+        function login(channelNumber) {
+        	var req = {"action":"getKeys","channel":channelNumber};
+          $.ajax({
+            url: "EQ_model.php",   //後端的URL
+            type: "POST",   //用POST的方式
+            data: req,
+            dataType: "json",   //response的資料格式
+            cache: false,   //是否暫存
+            success: function(response) {
+              
+              console.log(response);  //成功後回傳的資料
+              var array = JSON.stringify(response);
+              var obj = Object.keys(response).map(function(_) { return response[_]; });
+              var countKeys = Number(obj[0]);
+	      var countFields = Number(obj[1]);
+              obj = obj.slice(2);
+	      if(channelNumber=='12'){
+		countKeys = 30;	
+		countFields +=2;
+		obj = obj.slice(1);
+	      }
+	      var subArray = cutArray(obj,countFields);
+	      while (myDeleteFunction(countKeys,channelNumber) == true){
+                break;
+               }
+	      switch (channelNumber){
+		case 1:
+                        var table = document.getElementById("myTable");
+                        var row = table.insertRow(0);
+                        var cell0 = row.insertCell(0);
+                        cell0.innerHTML = 'Country';
+                        var cell1 = row.insertCell(1);
+                        cell1.innerHTML = 'City';
+                        var cell2 = row.insertCell(2);
+                        cell2.innerHTML = 'Ip';
+			var cell3 = row.insertCell(3);
+			cell3.innerHTML = 'Port';
+                break;
+		case 12:
+			var table = document.getElementById("myTable1");
+          		var row = table.insertRow(0);
+            		var cell0 = row.insertCell(0);
+            		cell0.innerHTML = 'Number of alive phones';
+         		var cell1 = row.insertCell(1);
+                        cell1.innerHTML = 'Number of detecting shaking phones';
+			var cell2 = row.insertCell(2);
+                        cell2.innerHTML = 'Confidence level';
+			var cell3 = row.insertCell(3);
+                        cell3.innerHTML = 'Result';
+			var cell4 = row.insertCell(4);
+                        cell4.innerHTML = 'Occurrence time';
+		break;
+		}
+              var i=0;
+	      if(channelNumber=='12'){
+	     	for(i=countKeys-1;i>=0;i--){
+			myCreateFunction(subArray[i],countFields, i, channelNumber);   
+	      		if (rows1==1){
+				var table1 = document.getElementById("myTable1");
+    				var len = table1.tBodies[0].rows.length;
+				rows1=0;
+				table1.tBodies[0].rows[1].style.backgroundColor = "#ff6670";
+			}
+		}
+              }else{
+		for(;i<countKeys;i++){
+                     myCreateFunction(subArray[i],countFields, countKeys,channelNumber);
+                }
+	       }
+		presentTable();
+                },
+                 error:function(){
+                 console.log("error3");
+                }
+      		});
+        } 
+        function cutArray(array, subLength) {
+            let index = 0;
+            let newArr = [];
+            while(index < array.length) {
+                newArr.push(array.slice(index, index += subLength));
+            }
+            return newArr;
+        }
+        function myDeleteFunction(countKeys,channelNumber) {
+	  if (channelNumber == '12'){
+		const isEmpty = document.querySelectorAll("#myTable1 tr").length <= 1;
+		if (isEmpty == false){
+           		var table = document.getElementById("myTable1");
+            		for (var i = rowNumber; i>=0; i--) {
+              			table.deleteRow(i);
+            		}
+          	}
+	  }else{
+	  	const isEmpty = document.querySelectorAll("#myTable tr").length <= 1;
+		if (isEmpty == false){
+            		var table = document.getElementById("myTable");
+            		for (var i = rowNumber; i>=0; i--) {
+              			table.deleteRow(i);
+            		}
+          	}
+	  }
+          rowNumber = countKeys;
+          return true;
+        }
+        function myCreateFunction(array, countFields, countKeys,channelNumber) {
+	  if (channelNumber == '12'){
+	  	var table = document.getElementById("myTable1");
+	  }else{
+	  	var table = document.getElementById("myTable");
+	  }
+          var row = table.insertRow(1);
+          for(var j=0;j<countFields;j++){
+		if(channelNumber == '12' && count<10 && j==2 && countKeys<10){
+			date1[count] =new Date(array[j+2]*1000);
+			parseInt(array[j]);
+			var x = array[j];
+			rate[count] = x;
+			count +=1;
+		}
+		if(array[2]=='1'){
+			rows1=1;
+		}
+	    	if(array[j].length > 9 && channelNumber =='12'){
+			array[j] = parseInt(array[j]);
+			array[j] = array[j]*1000;
+			var date = new Date(array[j]);
+			array[j] = date;
+		}
+		var cell1 = row.insertCell(j); 
+                cell1.innerHTML = array[j];
+          }
+	}
+	function presentTable(){
+		var str=['0','0','0','0','0','0','0','0','0','0'];
+		var color=['0','0','0','0','0','0','0','0','0','0'];
+		for(var i=0;i<10;i++){
+			rate[i]*=100;
+			str[i]=date1[i].toString().slice(0, 24);	
+			if(rate[i]<50)
+			color[i]= 'rgba(94, 159, 163, 0.8)';
+			else if(rate[i]>=50 && rate[i]<70)
+			color[i] = 'rgba(254,67,101, 0.8)';
+			else
+			color[i]= 'rgba(141,75,187, 0.8)';
+		}
+		var ctx = document.getElementById('chart').getContext('2d');
+        	var chart = new Chart(ctx, {
+          		type: 'bar',
+          		data: {
+              			labels: [str[0], str[1], str[2], str[3], str[4],str[5], str[6], str[7], str[8], str[9]],
+              			datasets: [{
+					label:'rate',
+                  			data: [rate[0], rate[1], rate[2], rate[3], rate[4],rate[5], rate[6], rate[7], rate[8], rate[9]],
+					backgroundColor: [
+						color[0],
+						color[1],
+						color[2],
+                                                color[3],
+						color[4],
+                                                color[5],
+                                                color[6],
+                                                color[7],
+						color[8],
+                                                color[9]
+            				],
+            				borderColor: [
+                				'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)',
+                                                'rgba(0, 0, 0, 1)',
+                                                'rgba(0, 0, 0, 1)',
+                                                'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)',
+						'rgba(0, 0, 0, 1)'
+            				],
+            				borderWidth: 1
+				}]
+          		},
+			options: {
+        			scales: {
+            				yAxes: [{
+                				ticks: {
+                    					beginAtZero: true,
+                        				stepSize: 10,
+                        				max: 100,
+							fontColor: "white"
+                				},
+						gridLines: {
+       							color: '#ffffff',
+							zerolinecColor: '#ffffff'
+    						}
+            				}],
+					xAxes: [{
+						ticks: {
+							fontColor: "white"
+						},
+						gridLines: {
+                                                        color: '#ffffff',
+                                                        zerolinecColor: '#ffffff'
+                                                }
+					}]
+        			}
+    			}
+        	});
+	}
+  </script>
+</body>
+
+</html>
+
